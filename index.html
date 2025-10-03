@@ -37,7 +37,6 @@
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
-      transition: opacity 0.5s;
     }
 
     h1 {
@@ -53,6 +52,19 @@
       margin: 20px 0;
       min-height: 80px;
       color: #ccc;
+    }
+
+    #user-input {
+      width: 90%;
+      max-width: 300px;
+      padding: 12px;
+      font-size: 16px;
+      background: #111;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 8px;
+      margin: 15px auto;
+      display: none;
     }
 
     .btn {
@@ -110,87 +122,98 @@
       هل أنت مستعد لسماع الحقيقة؟
     </div>
 
-    <button class="btn" onclick="startGame()">ابدأ اللعبة</button>
+    <input type="text" id="user-input" placeholder="اكتب ردك..." maxlength="100" />
+    <button class="btn" id="start-btn" onclick="startGame()">ابدأ اللعبة</button>
+    <button class="btn" id="send-btn" style="display:none;" onclick="sendMessage()">إرسال</button>
     <button id="share-btn" class="btn btn-share hidden" onclick="shareScore()">شارك نتيجتك</button>
     <div id="final-message" class="hidden"></div>
   </div>
 
-  <!-- الصوت -->
   <audio id="bg-music" loop>
     <source src="https://h.top4top.io/m_3563c6kkv1.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- Telegram Games SDK -->
   <script src="https://telegram.org/js/games.js"></script>
 
   <script>
+    let userId = null;
     let score = 0;
-    let gameState = 0;
     const audio = document.getElementById('bg-music');
+    const NGROK_URL = "https://9b398520d37f.ngrok-free.app"; // غيّره لاحقًا عند النشر
 
-    const images = {
-      start: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDxjaXJjbGUgY3g9IjE1MCIgY3k9IjEwMCIgcj0iMjAiIGZpbGw9IiNmZjAwMDAiLz4KICA8Y2lyY2xlIGN4PSIzNTAiIGN5PSIxMDAiIHI9IjIwIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHBhdGggZD0iTTE1MCwxNTAgQzE1MCwxODAgMjAwLDE4MCAyMDAsMTUwIEMyMDAsMTIwIDE1MCwxMjAgMTUwLDE1MCBaIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHBhdGggZD0iTTM1MCwxNTAgQzM1MCwxODAgNDAwLDE4MCA0MDAsMTUwIEM0MDAsMTIwIDM1MCwxMjAgMzUwLDE1MCBaIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIyMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iI2ZmMDAwMCI+4oSW4oSW4oSWPC90ZXh0Pgo8L3N2Zz4=",
-      q1: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjAwMDAiPuKYg+KYg+KYgzwvdGV4dD4KPC9zdmc+",
-      end1: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjAwMDAiPuKYp+KYp+KYpzwvdGV4dD4KPC9zdmc+",
-      end2: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjAwMDAiPuKYsOKYsOKYsDwvdGV4dD4KPC9zdmc+"
-    };
-
-    const texts = {
-      start: "مرحبًا... أنا ليلى.<br>لا أعرف لماذا اخترتك، لكن صوتك وصلني من الظلام.<br>هل أنت مستعد لسماع الحقيقة؟",
-      q1: "سمعتُ أنك تنظر في المرآة كل ليلة...<br>هل ترى شخصًا آخر ينظر إليك؟",
-      q2a: "جيد... لأن المرآة لا تكذب.<br>الآن، أغمض عينيك وعد إلى 3.<br>لا تفتحهما... مهما سمعت.",
-      q2b: "كذّاب... لأنني رأيتك.<br>رأيتك تحدّق في العتمة، تنتظرني.<br>لقد وصلتُ.",
-      end1: "لقد نجحت...<br>لكن هل أنت متأكد أنك لست في الحلم؟",
-      end2: "لم تعد وحيدًا...<br>أنا معك. دائمًا."
-    };
-
-    function updateUI(imageKey, text, showButtons = true) {
-      document.getElementById('game-image').src = images[imageKey];
-      document.getElementById('story-text').innerHTML = text;
-      if (!showButtons) {
-        document.querySelectorAll('.btn:not(.btn-share)').forEach(btn => btn.classList.add('hidden'));
+    // احصل على معرف المستخدم من تلجرام
+    function getUserId() {
+      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
       }
+      return "test_" + Date.now(); // للتجربة خارج تلجرام
     }
 
-    function startGame() {
-      // تشغيل الموسيقى بصوت منخفض
+    function showInput(show = true) {
+      document.getElementById('user-input').style.display = show ? 'block' : 'none';
+      document.getElementById('send-btn').style.display = show ? 'block' : 'none';
+      document.getElementById('start-btn').style.display = show ? 'none' : 'block';
+    }
+
+    function updateText(text) {
+      document.getElementById('story-text').innerHTML = `"${text}"`;
+    }
+
+    async function startGame() {
+      userId = getUserId();
       audio.volume = 0.3;
-      audio.play().catch(e => console.log("الصوت يحتاج تفاعل مستخدم:", e));
+      audio.play().catch(e => console.log("الصوت يحتاج تفاعل"));
 
-      gameState = 1;
-      updateUI('q1', texts.q1);
-      document.querySelector('.btn').outerHTML = `
-        <button class="btn" onclick="answer(true)">نعم، أراه</button>
-        <button class="btn" onclick="answer(false)">لا، أنا وحدي</button>
-      `;
+      // أول رسالة من ليلى
+      updateText("مرحبًا... أنا ليلى. لا أعرف لماذا اخترتك، لكن صوتك وصلني من الظلام. أخبرني، ما الذي جعلك تفتح هذه اللعبة؟");
+      showInput(true);
+      document.getElementById('user-input').focus();
     }
 
-    function answer(choice) {
-      if (choice) {
-        score = 50;
-        updateUI('end1', texts.end1, false);
-        document.getElementById('final-message').textContent = "النتيجة: 50 — الحقيقة مؤلمة...";
-      } else {
-        score = 100;
-        updateUI('end2', texts.end2, false);
-        document.getElementById('final-message').textContent = "النتيجة: 100 — ليلى تراك...";
-      }
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const msg = input.value.trim();
+      if (!msg) return;
 
-      document.getElementById('final-message').classList.remove('hidden');
-      document.getElementById('share-btn').classList.remove('hidden');
-      gameState = 3;
+      // عطّل الزر أثناء الانتظار
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true;
+      btn.textContent = "جاري الإرسال...";
 
-      // إرسال النتيجة إلى تلجرام
-      if (window.TelegramGameProxy) {
-        TelegramGameProxy.setScore(score);
+      try {
+        const res = await fetch(`${NGROK_URL}/ai`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, message: msg })
+        });
+
+        const data = await res.json();
+        if (data.reply) {
+          updateText(data.reply);
+          input.value = '';
+          // يمكنك إضافة نظام نقاط هنا حسب الرد
+        } else {
+          updateText("... ليلى لا تريد الرد الآن.");
+        }
+      } catch (e) {
+        console.error(e);
+        updateText("حدث خطأ... هل ما زلت تسمعني؟");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "إرسال";
       }
     }
+
+    // دعم الضغط على Enter
+    document.getElementById('user-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
 
     function shareScore() {
       if (window.TelegramGameProxy) {
         TelegramGameProxy.shareScore();
       } else {
-        alert("يمكنك مشاركة النتيجة فقط داخل تطبيق تلجرام!");
+        alert("يمكنك مشاركة النتيجة فقط داخل تلجرام!");
       }
     }
   </script>
