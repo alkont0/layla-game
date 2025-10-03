@@ -137,11 +137,8 @@
 
   <script>
     let userId = null;
-    let score = 0;
-    const audio = document.getElementById('bg-music');
-    const NGROK_URL = "https://9b398520d37f.ngrok-free.app"; // غيّره لاحقًا عند النشر
+    const NGROK_URL = "https://9b398520d37f.ngrok-free.app"; // غيّره عند النشر النهائي
 
-    // احصل على معرف المستخدم من تلجرام
     function getUserId() {
       if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
         return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
@@ -159,12 +156,12 @@
       document.getElementById('story-text').innerHTML = `"${text}"`;
     }
 
-    async function startGame() {
+    function startGame() {
       userId = getUserId();
+      const audio = document.getElementById('bg-music');
       audio.volume = 0.3;
       audio.play().catch(e => console.log("الصوت يحتاج تفاعل"));
 
-      // أول رسالة من ليلى
       updateText("مرحبًا... أنا ليلى. لا أعرف لماذا اخترتك، لكن صوتك وصلني من الظلام. أخبرني، ما الذي جعلك تفتح هذه اللعبة؟");
       showInput(true);
       document.getElementById('user-input').focus();
@@ -175,7 +172,6 @@
       const msg = input.value.trim();
       if (!msg) return;
 
-      // عطّل الزر أثناء الانتظار
       const btn = document.getElementById('send-btn');
       btn.disabled = true;
       btn.textContent = "جاري الإرسال...";
@@ -183,7 +179,10 @@
       try {
         const res = await fetch(`${NGROK_URL}/ai`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true' // لإزالة صفحة تحذير ngrok
+          },
           body: JSON.stringify({ userId, message: msg })
         });
 
@@ -191,20 +190,18 @@
         if (data.reply) {
           updateText(data.reply);
           input.value = '';
-          // يمكنك إضافة نظام نقاط هنا حسب الرد
         } else {
-          updateText("... ليلى لا تريد الرد الآن.");
+          updateText("... ليلى صامتة الآن.");
         }
       } catch (e) {
         console.error(e);
-        updateText("حدث خطأ... هل ما زلت تسمعني؟");
+        updateText("هل ما زلت تسمعني؟");
       } finally {
         btn.disabled = false;
         btn.textContent = "إرسال";
       }
     }
 
-    // دعم الضغط على Enter
     document.getElementById('user-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') sendMessage();
     });
