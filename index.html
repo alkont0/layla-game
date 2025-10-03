@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>ليلى</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #000;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      text-align: center;
+      direction: rtl;
+    }
+
+    #game-container {
+      width: 95%;
+      max-width: 500px;
+      padding: 20px;
+    }
+
+    #game-image {
+      width: 100%;
+      max-height: 250px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+      transition: opacity 0.5s;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 15px;
+      color: #ff3366;
+      text-shadow: 0 0 10px rgba(255, 51, 102, 0.6);
+    }
+
+    #story-text {
+      font-size: 18px;
+      line-height: 1.6;
+      margin: 20px 0;
+      min-height: 80px;
+      color: #ccc;
+    }
+
+    .btn {
+      display: block;
+      width: 90%;
+      max-width: 300px;
+      margin: 12px auto;
+      padding: 14px;
+      font-size: 18px;
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      background: #333;
+      transform: scale(1.03);
+    }
+
+    .btn-share {
+      background: #ff3366;
+      border-color: #ff6699;
+    }
+
+    .btn-share:hover {
+      background: #ff1a5c;
+    }
+
+    #final-message {
+      font-size: 22px;
+      color: #ff3366;
+      margin-top: 20px;
+      text-shadow: 0 0 8px rgba(255, 51, 102, 0.8);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    audio {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>ليلى</h1>
+    <img id="game-image" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDxjaXJjbGUgY3g9IjE1MCIgY3k9IjEwMCIgcj0iMjAiIGZpbGw9IiNmZjAwMDAiLz4KICA8Y2lyY2xlIGN4PSIzNTAiIGN5PSIxMDAiIHI9IjIwIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHBhdGggZD0iTTE1MCwxNTAgQzE1MCwxODAgMjAwLDE4MCAyMDAsMTUwIEMyMDAsMTIwIDE1MCwxMjAgMTUwLDE1MCBaIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHBhdGggZD0iTTM1MCwxNTAgQzM1MCwxODAgNDAwLDE4MCA0MDAsMTUwIEM0MDAsMTIwIDM1MCwxMjAgMzUwLDE1MCBaIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIyMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iI2ZmMDAwMCI+4oSW4oSW4oSWPC90ZXh0Pgo8L3N2Zz4=" alt="ليلى">
+    <div id="story-text">
+      مرحبًا... أنا ليلى.<br>
+      لا أعرف لماذا اخترتك، لكن صوتك وصلني من الظلام.<br>
+      هل أنت مستعد لسماع الحقيقة؟
+    </div>
+
+    <button class="btn" onclick="startGame()">ابدأ اللعبة</button>
+    <button id="share-btn" class="btn btn-share hidden" onclick="shareScore()">شارك نتيجتك</button>
+    <div id="final-message" class="hidden"></div>
+  </div>
+
+  <!-- الصوت -->
+  <audio id="bg-music" loop>
+    <source src="https://h.top4top.io/m_3563c6kkv1.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Telegram Games SDK -->
+  <script src="https://telegram.org/js/games.js"></script>
+
+  <script>
+    let score = 0;
+    let gameState = 0;
+    const audio = document.getElementById('bg-music');
+
+    const images = {
+      start: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDxjaXJjbGUgY3g9IjE1MCIgY3k9IjEwMCIgcj0iMjAiIGZpbGw9IiNmZjAwMDAiLz4KICA8Y2lyY2xlIGN4PSIzNTAiIGN5PSIxMDAiIHI9IjIwIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHBhdGggZD0iTTE1MCwxNTAgQzE1MCwxODAgMjAwLDE4MCAyMDAsMTUwIEMyMDAsMTIwIDE1MCwxMjAgMTUwLDE1MCBaIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHBhdGggZD0iTTM1MCwxNTAgQzM1MCwxODAgNDAwLDE4MCA0MDAsMTUwIEM0MDAsMTIwIDM1MCwxMjAgMzUwLDE1MCBaIiBmaWxsPSIjZmYwMDAwIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIyMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iI2ZmMDAwMCI+4oSW4oSW4oSWPC90ZXh0Pgo8L3N2Zz4=",
+      q1: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjAwMDAiPuKYg+KYg+KYgzwvdGV4dD4KPC9zdmc+",
+      end1: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjAwMDAiPuKYp+KYp+KYpzwvdGV4dD4KPC9zdmc+",
+      end2: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iIzAwMCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjAwMDAiPuKYsOKYsOKYsDwvdGV4dD4KPC9zdmc+"
+    };
+
+    const texts = {
+      start: "مرحبًا... أنا ليلى.<br>لا أعرف لماذا اخترتك، لكن صوتك وصلني من الظلام.<br>هل أنت مستعد لسماع الحقيقة؟",
+      q1: "سمعتُ أنك تنظر في المرآة كل ليلة...<br>هل ترى شخصًا آخر ينظر إليك؟",
+      q2a: "جيد... لأن المرآة لا تكذب.<br>الآن، أغمض عينيك وعد إلى 3.<br>لا تفتحهما... مهما سمعت.",
+      q2b: "كذّاب... لأنني رأيتك.<br>رأيتك تحدّق في العتمة، تنتظرني.<br>لقد وصلتُ.",
+      end1: "لقد نجحت...<br>لكن هل أنت متأكد أنك لست في الحلم؟",
+      end2: "لم تعد وحيدًا...<br>أنا معك. دائمًا."
+    };
+
+    function updateUI(imageKey, text, showButtons = true) {
+      document.getElementById('game-image').src = images[imageKey];
+      document.getElementById('story-text').innerHTML = text;
+      if (!showButtons) {
+        document.querySelectorAll('.btn:not(.btn-share)').forEach(btn => btn.classList.add('hidden'));
+      }
+    }
+
+    function startGame() {
+      // تشغيل الموسيقى بصوت منخفض
+      audio.volume = 0.3;
+      audio.play().catch(e => console.log("الصوت يحتاج تفاعل مستخدم:", e));
+
+      gameState = 1;
+      updateUI('q1', texts.q1);
+      document.querySelector('.btn').outerHTML = `
+        <button class="btn" onclick="answer(true)">نعم، أراه</button>
+        <button class="btn" onclick="answer(false)">لا، أنا وحدي</button>
+      `;
+    }
+
+    function answer(choice) {
+      if (choice) {
+        score = 50;
+        updateUI('end1', texts.end1, false);
+        document.getElementById('final-message').textContent = "النتيجة: 50 — الحقيقة مؤلمة...";
+      } else {
+        score = 100;
+        updateUI('end2', texts.end2, false);
+        document.getElementById('final-message').textContent = "النتيجة: 100 — ليلى تراك...";
+      }
+
+      document.getElementById('final-message').classList.remove('hidden');
+      document.getElementById('share-btn').classList.remove('hidden');
+      gameState = 3;
+
+      // إرسال النتيجة إلى تلجرام
+      if (window.TelegramGameProxy) {
+        TelegramGameProxy.setScore(score);
+      }
+    }
+
+    function shareScore() {
+      if (window.TelegramGameProxy) {
+        TelegramGameProxy.shareScore();
+      } else {
+        alert("يمكنك مشاركة النتيجة فقط داخل تطبيق تلجرام!");
+      }
+    }
+  </script>
+</body>
+</html>
